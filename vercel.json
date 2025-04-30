@@ -19,11 +19,6 @@
         "src": "/.*",
         "dest": "/extension/src/popup.html"
       }
-    ],
-    "rewrites": [
-      {
-        "source": "/(.*)",
-        "destination": "/"
-      }
     ]
+    
   }
