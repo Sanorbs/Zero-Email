@@ -12,12 +12,18 @@
     ],
     "routes": [
       {
-        "src": "/api/(.*)",
-        "dest": "backend/src/index.ts"
+        "src": "/api/.*",
+        "dest": "/backend/src/index.ts"
       },
       {
-        "src": "/(.*)",
-        "dest": "extension/buildsrc/$1"
+        "src": "/.*",
+        "dest": "/extension/src/popup.html"
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/(.*)",
+        "destination": "/"
       }
     ]
   }
