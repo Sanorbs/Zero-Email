@@ -1,0 +1,61 @@
+.popup-container {
+    width: 400px;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+  }
+  
+  .popup-container h1 {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 15px;
+  }
+  
+  .search-box {
+    display: flex;
+    margin-bottom: 15px;
+  }
+  
+  .search-box input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+  }
+  
+  .search-box button {
+    padding: 8px 15px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 0 4px 4px 0;
+    cursor: pointer;
+  }
+  
+  .email-result {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+  }
+  
+  .email-result h3 {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+    color: #1a73e8;
+  }
+  
+  .from {
+    color: #5f6368;
+    font-size: 12px;
+    margin: 0 0 5px 0;
+  }
+  
+  .summary {
+    font-size: 13px;
+    margin: 0 0 5px 0;
+    color: #333;
+  }
+  
+  .date {
+    font-size: 11px;
+    color: #70757a;
+    margin: 0;
+  }

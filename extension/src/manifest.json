@@ -1,0 +1,33 @@
+{
+    "manifest_version": 3,
+    "name": "Zero Email Management",
+    "version": "1.0",
+    "description": "Automatic email organization system",
+    "permissions": [
+      "storage",
+      "activeTab",
+      "scripting",
+      "identity",
+      "identity.email"
+    ],
+    "host_permissions": [
+      "*://mail.google.com/*",
+      "*://outlook.office.com/*"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": [
+          "*://mail.google.com/*",
+          "*://outlook.office.com/*"
+        ],
+        "js": ["content.js"]
+      }
+    ],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": "icons/icon48.png"
+    }
+  }

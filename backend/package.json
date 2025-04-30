@@ -1,0 +1,38 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node -r tsconfig-paths/register src/index.ts",
+    "build": "tsc",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.3",
+    "@types/sqlite3": "^3.1.11",
+    "nodemon": "^3.1.10",
+    "sqlite3": "^5.1.7",
+    "ts-jest": "^29.3.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@nlpjs/nlp": "^5.0.0-alpha.5",
+    "@types/axios": "^0.9.36",
+    "@types/express": "^5.0.1",
+    "@types/lunr": "^2.3.7",
+    "axios": "^1.9.0",
+    "express": "^5.1.0",
+    "ibm-watson": "^10.0.0",
+    "lunr": "^2.3.9",
+    "natural": "^8.0.1",
+    "sqlite": "^5.1.1"
+  }
+}
