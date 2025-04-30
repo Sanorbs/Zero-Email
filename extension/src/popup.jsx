@@ -8,7 +8,29 @@ const ZemsPopup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState('Loading...');
   const [processedCount, setProcessedCount] = useState('0 processed today');
+// In your React component
+const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
+useEffect(() => {
+  chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+    const url = tabs[0]?.url;
+    if (url?.includes('mail.google.com') || url?.includes('outlook.office.com')) {
+      setConnectionStatus('connected');
+    } else {
+      setConnectionStatus('disconnected');
+    }
+  });
+}, []);
+
+// In your render method
+{connectionStatus === 'disconnected' && (
+  <div className="connection-alert">
+    <p>Please open Gmail or Outlook to load emails</p>
+    <button onClick={() => chrome.tabs.create({url: 'https://mail.google.com'})}>
+      Open Gmail
+    </button>
+  </div>
+)}
   // Initialize
   useEffect(() => {
     loadInitialData();

@@ -1,73 +1,98 @@
+function checkEmailClient() {
+  if (window.location.href.includes('mail.google.com')) {
+    return 'gmail';
+  } else if (window.location.href.includes('outlook.office.com')) {
+    return 'outlook';
+  }
+  return null;
+}
 function injectEmailObserver() {
-    // Watch for email view changes in Gmail/Outlook
-    const observer = new MutationObserver(() => {
-      const email = extractCurrentEmail();
-      if (email) {
-        chrome.runtime.sendMessage({
-          type: 'PROCESS_EMAIL',
-          email
-        }, (processed) => {
-          displayEmailEnhancements(processed);
-        });
-      }
-    });
-  
-    observer.observe(document.body, { subtree: true, childList: true });
+  const observer = new MutationObserver(() => {
+    const email = extractCurrentEmail();
+    if (email && !window.lastProcessedEmailId !== email.id) {
+      window.lastProcessedEmailId = email.id;
+
+      chrome.runtime.sendMessage(
+        { type: 'PROCESS_EMAIL', email },
+        (processed) => {
+          if (processed?.metadata) {
+            displayEmailEnhancements({ ...email, ...processed });
+          }
+        }
+      );
+    }
+  });
+
+  observer.observe(document.body, { subtree: true, childList: true });
+}
+
+function extractCurrentEmail(client) {
+  switch(client) {
+    case 'gmail':
+      return {
+        id: document.querySelector('[data-message-id]')?.dataset.messageId,
+        from: document.querySelector('.gD')?.textContent,
+        subject: document.querySelector('[data-thread-perm-id] h2')?.textContent,
+        body: document.querySelector('.ii.gt')?.textContent,
+        date: document.querySelector('.g3')?.title || document.querySelector('.xW.xY')?.textContent
+      };
+    case 'outlook':
+      return {
+        id: window.location.href.split('#')[1],
+        from: document.querySelector('.ms-font-weight-semibold')?.textContent,
+        subject: document.querySelector('[role=heading]')?.textContent,
+        body: document.querySelector('#ReadingPaneContainerId')?.textContent,
+        date: document.querySelector('.ms-font-s')?.textContent
+      };
+    default:
+      return null;
   }
-  
-  function extractCurrentEmail() {
-    // Extract email data from Gmail/Outlook DOM
-    // This will be email client specific
-    return {
-      id: window.location.href,
-      from: document.querySelector('.from')?.textContent,
-      subject: document.querySelector('.subject')?.textContent,
-      body: document.querySelector('.email-body')?.textContent,
-      date: document.querySelector('.date')?.textContent
-    };
-  }
-  
-  // ... (previous content script code)
+}
 
 function displayEmailEnhancements(processed) {
-  // Remove any existing enhancements
   document.querySelectorAll('.zems-enhancement').forEach(el => el.remove());
-  
-  // Find the email header element (Gmail-specific selector)
+
   const emailHeader = document.querySelector('[data-message-id]');
   if (!emailHeader) return;
-  
-  // Create summary card
+
   const summaryCard = document.createElement('div');
   summaryCard.className = 'zems-summary-card zems-enhancement';
+  summaryCard.style.cssText = `
+    padding: 12px;
+    border: 1px solid #ccc;
+    background: #f9f9f9;
+    border-radius: 8px;
+    margin-top: 10px;
+    font-family: sans-serif;
+  `;
+
   summaryCard.innerHTML = `
     <h4>ZEMS Summary</h4>
     <p>${processed.metadata.summary}</p>
     <div class="zems-metadata-tags">
-      ${processed.metadata.categories.map(cat => 
-        `<span class="zems-metadata-tag ${cat}">${cat}</span>`
+      ${(processed.metadata.categories || []).map(cat =>
+        `<span style="background:#eee;padding:4px 8px;margin-right:4px;border-radius:4px;">${cat}</span>`
       ).join('')}
-      ${processed.metadata.importance > 0.7 ? 
-        '<span class="zems-metadata-tag important">important</span>' : ''}
+      ${processed.metadata.importance > 0.7 ?
+        '<span style="background:#ffcccc;padding:4px 8px;margin-right:4px;border-radius:4px;">important</span>' : ''}
     </div>
     <div class="zems-action-buttons">
       <button class="zems-action-button primary">Follow Up</button>
       <button class="zems-action-button secondary">Snooze</button>
     </div>
   `;
-  
-  // Insert after email header
+
   emailHeader.parentNode.insertBefore(summaryCard, emailHeader.nextSibling);
-  
-  // Highlight important emails
+
+  // Optional: visually highlight high importance
   if (processed.metadata.importance > 0.7) {
     const emailContent = document.querySelector('.ii.gt');
     if (emailContent) {
-      emailContent.classList.add('zems-email-highlight');
+      emailContent.style.border = '2px solid red';
     }
   }
-  
-  // Add action button listeners
+
+  // Button logic
   document.querySelectorAll('.zems-action-button').forEach(button => {
     button.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -79,9 +104,18 @@ function displayEmailEnhancements(processed) {
         });
         button.textContent = 'Reminder Set';
         button.disabled = true;
-      } else if (button.textContent === 'Snooze') {
-        // Handle snooze
       }
     });
   });
+  
+  
 }
+
+
+// Start observing Gmail
+if (window.location.href.includes('mail.google.com')) {
+  injectEmailObserver();
+}
+window.addEventListener('load', () => {
+  injectEmailObserver();
+});
