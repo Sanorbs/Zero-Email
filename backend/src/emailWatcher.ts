@@ -1,63 +1,41 @@
-import { Email } from '../../shared/types';
-import { EmailStorage } from './emailStorage';
-import { ReminderService } from './reminderService';
+import { Email } from '@shared/types';
+import { storeEmail } from './emailStorage';
+import { scheduleReminders } from './reminderService';
 
-export class EmailWatcher {
-  constructor(
-    private storage: EmailStorage,
-    private reminderService: ReminderService
-  ) {}
-
-  async processNewEmail(email: Email): Promise<void> {
-    // Ensure metadata.relations exists
+export async function watchEmailRelations(email: Email): Promise<void> {
+  try {
+    // Initialize relations if empty
     email.metadata.relations = email.metadata.relations || [];
-    
-    await this.storage.saveEmail(email);
-    this.reminderService.scheduleReminder(email);
-    await this.updateRelatedEmails(email);
-  }
 
-  private async updateRelatedEmails(email: Email): Promise<void> {
-    const relatedEmails = await this.findRelatedEmails(email);
+    // Find related emails (simplified example)
+    const relatedEmails = findRelatedEmails(email);
     
-    const updatePromises = relatedEmails.map(async (relatedEmail) => {
-      // Ensure relations array exists
+    for (const relatedEmail of relatedEmails) {
+      // Initialize relations if empty
       relatedEmail.metadata.relations = relatedEmail.metadata.relations || [];
       
       if (!relatedEmail.metadata.relations.includes(email.id)) {
         relatedEmail.metadata.relations.push(email.id);
-        await this.storage.saveEmail(relatedEmail);
+        await storeEmail(relatedEmail);
       }
-    });
-    email.metadata.relations = email.metadata.relations || [];
-    // Update current email relations
+    }
+
+    // Update current email's relations
     email.metadata.relations = [
       ...new Set([
-        ...email.metadata.relations,
-        ...relatedEmails.map(e => e.id)
+        ...relatedEmails.map(e => e.id),
+        ...email.metadata.relations
       ])
     ];
-    
-    await Promise.all([...updatePromises, this.storage.saveEmail(email)]);
+
+    await storeEmail(email);
+    await scheduleReminders(email);
+  } catch (error) {
+    console.error('Error watching email relations:', error);
   }
+}
 
-  private async findRelatedEmails(email: Email): Promise<Email[]> {
-    const subjectBase = email.subject?.replace(/^(Re:|Fwd:)\s*/i, '') || '';
-    const [subjectResults, senderResults] = await Promise.all([
-      this.storage.searchEmails(subjectBase),
-      this.storage.searchEmails(email.from || '')
-    ]);
-
-    const related = [...subjectResults, ...senderResults]
-      .filter(e => e.id !== email.id)
-      .map(e => ({
-        ...e,
-        metadata: {
-          ...e.metadata,
-          relations: e.metadata.relations || []
-        }
-      }));
-
-    return Array.from(new Map(related.map(e => [e.id, e])).values());
-  }
+function findRelatedEmails(email: Email): Email[] {
+  // Implementation depends on your relation logic
+  return []; // Return array of related emails
 }

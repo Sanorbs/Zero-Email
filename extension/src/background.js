@@ -1,37 +1,68 @@
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('ZEMS extension installed');
-});
+// Email processing queue
+let processingQueue = [];
+const PROCESSING_INTERVAL = 5000; // 5 seconds
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'PROCESS_EMAIL') {
-    processEmail(request.email)
-      .then(sendResponse)
-      .catch(error => {
-        console.error('Email processing failed:', error);
-        sendResponse({ error: 'Processing failed' });
-      });
-    return true; // Keep the message channel open
-  }
-
-  if (request.type === 'CREATE_REMINDER') {
-    console.log(`Reminder set for: ${request.emailId} at ${request.time}`);
-    // Optionally store in chrome.storage or call an API
-  }
-});
-
-async function processEmail(email) {
-  // First store locally
-  const result = await chrome.storage.local.get(['zemsEmails']);
-  const emails = result.zemsEmails || [];
+// Process queue periodically
+setInterval(async () => {
+  if (processingQueue.length === 0) return;
   
-  // Add new email if not already exists
-  if (!emails.some(e => e.id === email.id)) {
-    emails.unshift({
-      ...email,
-      metadata: await analyzeEmail(email)
+  const email = processingQueue.shift();
+  try {
+    const response = await fetch('http://localhost:3000/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(email)
     });
-    await chrome.storage.local.set({ zemsEmails: emails });
+    
+    const processedEmail = await response.json();
+    chrome.storage.local.get(['zemsEmails'], (result) => {
+      const emails = result.zemsEmails || [];
+      emails.push(processedEmail);
+      chrome.storage.local.set({ zemsEmails: emails });
+    });
+  } catch (error) {
+    console.error('ZEMS: Processing failed', error);
   }
-  
-  return emails.find(e => e.id === email.id);
-}
+}, PROCESSING_INTERVAL);
+
+// Message handler
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  switch (request.type) {
+    case 'PROCESS_EMAIL':
+      processingQueue.push(request.email);
+      sendResponse({ success: true });
+      break;
+      
+    case 'GET_EMAILS':
+      chrome.storage.local.get(['zemsEmails'], (result) => {
+        sendResponse({ emails: result.zemsEmails || [] });
+      });
+      return true; // Async response
+      
+    case 'SEARCH_EMAILS':
+      chrome.storage.local.get(['zemsEmails'], (result) => {
+        const emails = result.zemsEmails || [];
+        const filtered = emails.filter(email => 
+          email.subject.toLowerCase().includes(request.query.toLowerCase()) ||
+          email.from.toLowerCase().includes(request.query.toLowerCase())
+        );
+        sendResponse({ results: filtered });
+      });
+      return true;
+  }
+  // Track content script connections
+const ports = new Set();
+
+chrome.runtime.onConnect.addListener((port) => {
+  ports.add(port);
+  port.onDisconnect.addListener(() => {
+    ports.delete(port);
+  });
+});
+
+// Handle extension reload
+chrome.runtime.onSuspend.addListener(() => {
+  console.log('ZEMS: Extension unloading - cleaning up');
+  ports.forEach(port => port.disconnect());
+});
+});

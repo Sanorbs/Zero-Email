@@ -1,76 +1,43 @@
 import { Email } from '../../shared/types';
 
-export class ReminderService {
-  private pendingActions = new Map<string, NodeJS.Timeout>();
+// In-memory reminders
+const pendingReminders = new Map<string, NodeJS.Timeout>();
 
-  scheduleReminder(email: Email): void {
-    if (this.needsReminder(email)) {
-      const reminderTime = this.calculateReminderTime(email);
+export async function scheduleReminders(email: Email): Promise<void> {
+  try {
+    // Clear existing reminder if any
+    if (pendingReminders.has(email.id)) {
+      clearTimeout(pendingReminders.get(email.id)!);
+    }
+
+    // Only schedule if email needs action and has metadata
+    if (email.metadata?.needsAction) {
+      const reminderTime = calculateReminderTime(email);
       const timeout = setTimeout(() => {
-        this.sendReminder(email);
+        sendReminderNotification(email);
+        pendingReminders.delete(email.id);
       }, reminderTime.getTime() - Date.now());
-      
-      this.pendingActions.set(email.id, timeout);
+
+      pendingReminders.set(email.id, timeout);
     }
+  } catch (error) {
+    console.error('Failed to schedule reminder:', error);
   }
+}
 
-  private needsReminder(email: Email): boolean {
-    // Provide a default value (0) if importance is undefined
-    const importance = email.metadata.importance ?? 0;
-    
-    // Analyze email for action items
-    return importance > 0.7 || 
-           this.containsActionItems(email.body) ||
-           this.hasUrgentKeywords(email);
-  }
+function calculateReminderTime(email: Email): Date {
+  // Default to 48 hours if no importance is set
+  const defaultHours = 48;
+  
+  // Use optional chaining and nullish coalescing for safe access
+  const hours = (email.metadata?.importance ?? 0) > 0.7 ? 24 : defaultHours;
+  
+  const reminderTime = new Date();
+  reminderTime.setHours(reminderTime.getHours() + hours);
+  return reminderTime;
+}
 
-  private calculateReminderTime(email: Email): Date {
-    // Calculate based on content urgency
-    const now = new Date();
-    
-    // Provide a default value (0) if importance is undefined
-    const importance = email.metadata.importance ?? 0;
-    
-    // More important emails get reminded sooner
-    const hoursToAdd = importance > 0.8 ? 2 :  // High importance: 2 hours
-                      importance > 0.5 ? 24 : // Medium importance: 1 day
-                      48;                     // Low importance: 2 days
-    
-    return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
-  }
-
-  private sendReminder(email: Email): void {
-    // Send notification to extension
-    console.log(`Reminder for email: ${email.subject}`);
-    this.pendingActions.delete(email.id);
-  }
-
-  private containsActionItems(body: string): boolean {
-    // Simple check for action-oriented language
-    const actionPhrases = [
-      'please respond', 'action required', 'need your input',
-      'by tomorrow', 'deadline', 'follow up', 'urgent'
-    ];
-    return actionPhrases.some(phrase => 
-      body.toLowerCase().includes(phrase)
-    );
-  }
-
-  private hasUrgentKeywords(email: Email): boolean {
-    const urgentKeywords = ['urgent', 'asap', 'immediately', 'important'];
-    return (
-      urgentKeywords.some(keyword => 
-        email.subject.toLowerCase().includes(keyword)) ||
-      urgentKeywords.some(keyword => 
-        email.body.toLowerCase().includes(keyword))
-    );
-  }
-
-  cancelReminder(emailId: string): void {
-    const timeout = this.pendingActions.get(emailId);
-    if (timeout) {
-      clearTimeout(timeout);
-      this.pendingActions.delete(emailId);
-    }
-  }
+function sendReminderNotification(email: Email): void {
+  console.log(`REMINDER: Action needed for email: ${email.subject}`);
+  // Actual notification implementation would go here
 }

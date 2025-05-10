@@ -1,1 +1,0 @@
-(()=>{function n(){new MutationObserver((function(){})).observe(document.body,{subtree:!0,childList:!0})}window.location.href.includes("mail.google.com")&&n(),window.addEventListener("load",(function(){n()}))})();

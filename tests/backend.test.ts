@@ -9,12 +9,16 @@ describe('EmailStorage', () => {
     to: ['me@example.com'],
     subject: 'Test Email',
     body: 'This is a test email body',
-    date: new Date(),
+    date: new Date().toISOString(),
     metadata: {
       importance: 0.8,
       categories: ['work', 'important'],
       summary: 'Test summary',
-      relations: []
+      relations: [],
+      read: false,
+      starred: false,
+      needsAction: false,
+      processedAt: new Date()
     }
   };
 
